@@ -159,7 +159,7 @@ struct ContentView: View {
     }
 }
 
-
+//build card
 struct CardView: View {
     @State var isFaceUp: Bool = true
     var content: String
