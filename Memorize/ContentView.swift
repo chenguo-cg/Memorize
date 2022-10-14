@@ -7,194 +7,75 @@
 
 import SwiftUI
 
-
-struct travelThemeView: View {
-    @State var travelEmojis = ["🚁", "🚘", "⛴", "🚀", "🚗", "🚕","🛵","🚖", "🛰", "🚑", "🚒", "🚙", "🚜", "🛻", "🚐", "🚍", "🚇", "🛸", "🛶", "⛵️", "🚤", "🛥", "🚂", "🦽"]
-    
-    @State var emojiCount  = 24
-    
-    var body: some View {
-        VStack {
-            Text("Memorize!").font(.title)
-            ScrollView{
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 65))]) {
-                    ForEach(travelEmojis[0..<emojiCount], id: \.self) { emoji in
-                        CardView(content: emoji).aspectRatio(2/3, contentMode: .fit)
-                    }
-                }
-            }
-            .onAppear(perform: {
-                travelEmojis.shuffle()
-            })
-            .foregroundColor(.red)
-        }
-        .padding(.horizontal)
-    }
-    var remove: some View {
-        Button {
-            if emojiCount > 1 {
-                emojiCount -= 1
-            }
-        } label: {
-            Image(systemName: "minus.circle")
-        }
-    }
-    var add: some View {
-        Button{
-            if emojiCount < travelEmojis.count {
-                emojiCount += 1
-            }
-        } label: {
-            Image(systemName: "plus.circle")
-        }
-    }
-}
-
-struct fruitThemeView: View {
-    @State var fruitEmojis = ["🍏", "🍊", "🍌", "🍉", "🍇", "🥥", "🍍", "🫐", "🍓", "🍈", "🍒", "🍑"]
-
-    @State var emojiCount  = 12
-    
-    var body: some View {
-        VStack {
-            Text("Memorize!").font(.title)
-            ScrollView{
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 65))]) {
-                    ForEach(fruitEmojis[0..<emojiCount], id: \.self) { emoji in
-                        CardView(content: emoji).aspectRatio(2/3, contentMode: .fit)
-                    }
-                }
-            }
-            .onAppear(perform: {
-                fruitEmojis.shuffle()
-            })
-            .foregroundColor(.red)
-
-        }
-        .padding(.horizontal)
-    }
-    var remove: some View {
-        Button {
-            if emojiCount > 1 {
-                emojiCount -= 1
-            }
-        } label: {
-            Image(systemName: "minus.circle")
-        }
-    }
-    var add: some View {
-        Button{
-            if emojiCount < fruitEmojis.count {
-                emojiCount += 1
-            }
-        } label: {
-            Image(systemName: "plus.circle")
-        }
-    }
-}
-
-struct animalThemeView: View {
-    @State var animalEmojis = ["🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼", "🐻‍❄️", "🐨", "🐯", "🦁", "🐮", "🐷", "🐵", "🐸"]
-    
-    @State var emojiCount  = 16
-    
-    var body: some View {
-        VStack {
-            Text("Memorize!").font(.title)
-            ScrollView{
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 65))]) {
-                    ForEach(animalEmojis[0..<emojiCount], id: \.self) { emoji in
-                        CardView(content: emoji).aspectRatio(2/3, contentMode: .fit)
-                    }
-                }
-            }
-            .onAppear(perform: {
-                animalEmojis.shuffle()
-            })
-            .foregroundColor(.red)
-            Spacer()
-
-        }
-        .padding(.horizontal)
-    }
-    var remove: some View {
-        Button {
-            if emojiCount > 1 {
-                emojiCount -= 1
-            }
-        } label: {
-            Image(systemName: "minus.circle")
-        }
-    }
-    var add: some View {
-        Button{
-            if emojiCount < animalEmojis.count {
-                emojiCount += 1
-            }
-        } label: {
-            Image(systemName: "plus.circle")
-        }
-    }
-}
-
 struct ContentView: View {
-    var body: some View{
-        TabView {
-            travelThemeView()
-                .tabItem{
-                    Image(systemName: "car").font(.system(size: 60))
-                    Text("Travel")
+    // @ObservedObject: when viewModel says sth changed, plz rebuild my entire body
+    @ObservedObject var viewModel: EmojiMemoryGame
+    
+    //shows what's in the model
+    var body: some View {
+        VStack{
+            HStack{
+                Text(viewModel.themeName).font(.largeTitle)
+                Spacer()
+                Text("Score: \(viewModel.score)").font(.largeTitle)
+            }
+            .padding()
+            ScrollView {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 65))]) {
+                    ForEach(viewModel.cards) { card in // bag of lego View!
+                        CardView(card: card)
+                            .aspectRatio(2/3, contentMode: .fit)
+                            .onTapGesture {
+                                // ask viewModel to express User intent
+                                viewModel.choose(card)
+                            }
+                    }
                 }
-            animalThemeView()
-                .tabItem{
-                    Image(systemName: "pawprint")
-                    Text("Animal")
-                }
-            fruitThemeView()
-                .tabItem{
-                    Image(systemName: "heart")
-                    Text("Food")
-                }
+            }
+            .padding(.horizontal)
+
+            Button(action: {
+                viewModel.newGame()
+            }, label: {
+                Text("New Game").font(.largeTitle)
+            })
+            .buttonStyle(GrowingButton())
         }
+        .foregroundColor(viewModel.themeColor)
+
     }
 }
 
-
+// View that shows what the card looks like
 struct CardView: View {
-    @State var isFaceUp: Bool = true
-    var content: String
+    let card: MemoryGame<String>.Card
     
     var body: some View {
         ZStack {
             let shape = RoundedRectangle(cornerRadius: 20)
-            if isFaceUp {
+            if card.isFaceUp {
                 shape.fill().foregroundColor(.white)
                 shape.strokeBorder(lineWidth: 3)
-                Text(content).font(.largeTitle)
-            } else{
+                Text(card.content).font(.largeTitle)
+            } else if card.isMatched {
+                shape.opacity(0)
+            } else {
                 shape.fill()
             }
-        }
-        .onTapGesture {
-            isFaceUp = !isFaceUp
         }
     }
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+struct GrowingButton: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .padding()
+            .background(.white)
+            .clipShape(Capsule())
+            .scaleEffect(configuration.isPressed ? 1.2 : 1)
+            .animation(.easeOut(duration: 0.2), value: configuration.isPressed)
+    }
+}
 
 
 
@@ -215,9 +96,10 @@ struct CardView: View {
 
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
-        ContentView()
+        let game = EmojiMemoryGame()
+        ContentView(viewModel: game)
             .preferredColorScheme(.dark)
-        ContentView()
+        ContentView(viewModel: game)
             .preferredColorScheme(.light)
     }
 }
